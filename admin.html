@@ -217,6 +217,22 @@ tr:hover td{background:rgba(201,168,76,.02)}
             <label>Range (Sheet Name)</label><input type="text" id="sheetsRange" placeholder="Sheet1!A1" value="Sheet1!A1">
             <label>Service Account JSON Credentials</label>
             <textarea id="sheetsCreds" rows="6" placeholder='{ "type": "service_account", ... }'></textarea>
+            
+            <div id="mappingSection" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+              <h4 style="color:var(--gold); font-size: 0.9rem; margin-bottom: 10px;">Manual Column Mapping</h4>
+              <p style="font-size: 0.75rem; color: var(--muted); margin-bottom: 15px;">Enter the column letter (A, B, C...) for each field. Leave blank to skip.</p>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><label style="margin-top:0">Lead ID</label><input type="text" id="mapId" placeholder="A" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">Name</label><input type="text" id="mapName" placeholder="B" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">Phone</label><input type="text" id="mapPhone" placeholder="C" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">Email</label><input type="text" id="mapEmail" placeholder="D" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">Source</label><input type="text" id="mapSource" placeholder="E" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">Config/Type</label><input type="text" id="mapConfig" placeholder="F" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">City/Country</label><input type="text" id="mapLocation" placeholder="G" style="padding: 8px;"></div>
+                <div><label style="margin-top:0">Date/Time</label><input type="text" id="mapDate" placeholder="H" style="padding: 8px;"></div>
+              </div>
+            </div>
+
             <div class="btn-row">
               <button type="submit" class="btn-sm btn-gold">💾 Save Sheets Config</button>
             </div>
@@ -409,6 +425,17 @@ async function loadSheets() {
     document.getElementById('sheetsId').value = d.sheets.spreadsheetId || '';
     document.getElementById('sheetsRange').value = d.sheets.range || 'Sheet1!A1';
     document.getElementById('sheetsCreds').value = d.sheets.credentials ? JSON.stringify(d.sheets.credentials, null, 2) : '';
+    
+    // Load Mappings
+    const m = d.sheets.mapping || {};
+    document.getElementById('mapId').value = m.id || '';
+    document.getElementById('mapName').value = m.name || '';
+    document.getElementById('mapPhone').value = m.phone || '';
+    document.getElementById('mapEmail').value = m.email || '';
+    document.getElementById('mapSource').value = m.source || '';
+    document.getElementById('mapConfig').value = m.configuration || '';
+    document.getElementById('mapLocation').value = m.location || '';
+    document.getElementById('mapDate').value = m.date || '';
   }
 }
 document.getElementById('sheetsForm').addEventListener('submit', async e => {
@@ -417,7 +444,17 @@ document.getElementById('sheetsForm').addEventListener('submit', async e => {
     enabled: document.getElementById('sheetsEnabled').value === 'true',
     spreadsheetId: document.getElementById('sheetsId').value,
     range: document.getElementById('sheetsRange').value,
-    credentials: document.getElementById('sheetsCreds').value
+    credentials: document.getElementById('sheetsCreds').value,
+    mapping: {
+      id: document.getElementById('mapId').value.toUpperCase(),
+      name: document.getElementById('mapName').value.toUpperCase(),
+      phone: document.getElementById('mapPhone').value.toUpperCase(),
+      email: document.getElementById('mapEmail').value.toUpperCase(),
+      source: document.getElementById('mapSource').value.toUpperCase(),
+      configuration: document.getElementById('mapConfig').value.toUpperCase(),
+      location: document.getElementById('mapLocation').value.toUpperCase(),
+      date: document.getElementById('mapDate').value.toUpperCase()
+    }
   })});
   const d = await r.json();
   showToast(d.success ? 'Google Sheets config saved!' : d.error, d.success ? 'success' : 'error');

@@ -130,11 +130,42 @@ async function appendToSheet(lead) {
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
-    const sheets = google.sheets({ version: 'v4', auth });
     const spreadsheetId = config.sheets.spreadsheetId;
-    const range = config.sheets.range || 'Sheet1!A1:Z1';
+    const mapping = config.sheets.mapping || {};
 
-    // 1. Get the headers from the first row
+    // 1. If mapping exists, use it. If not, fallback to auto-detecting headers.
+    if (Object.keys(mapping).length > 0 && Object.values(mapping).some(v => v)) {
+      // Find the maximum column letter used (e.g. 'H' -> 7)
+      const colToIdx = (col) => {
+        let res = 0;
+        for (let i = 0; i < col.length; i++) res = res * 26 + col.charCodeAt(i) - 64;
+        return res - 1;
+      };
+
+      const maxIdx = Math.max(...Object.values(mapping).filter(v => v).map(colToIdx));
+      const row = new Array(maxIdx + 1).fill('');
+
+      if (mapping.id) row[colToIdx(mapping.id)] = lead.id;
+      if (mapping.name) row[colToIdx(mapping.name)] = lead.name;
+      if (mapping.phone) row[colToIdx(mapping.phone)] = lead.phone;
+      if (mapping.email) row[colToIdx(mapping.email)] = lead.email;
+      if (mapping.source) row[colToIdx(mapping.source)] = lead.source;
+      if (mapping.configuration) row[colToIdx(mapping.configuration)] = lead.configuration;
+      if (mapping.location) row[colToIdx(mapping.location)] = `${lead.city}, ${lead.country}`;
+      if (mapping.date) row[colToIdx(mapping.date)] = new Date(lead.date).toLocaleString('en-IN');
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: config.sheets.range || 'Sheet1!A1',
+        valueInputOption: 'USER_ENTERED',
+        resource: { values: [row] },
+      });
+      return;
+    }
+
+    // FALLBACK: Smart Header Auto-Detection (if no manual mapping)
+    const sheets = google.sheets({ version: 'v4', auth });
+    const range = config.sheets.range || 'Sheet1!A1:Z1';
     const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
     const headers = response.data.values ? response.data.values[0] : [];
 
@@ -402,12 +433,13 @@ app.get('/api/admin/sheets', authMiddleware, (req, res) => {
 
 app.post('/api/admin/sheets', authMiddleware, (req, res) => {
   const config = getConfig();
-  const { enabled, spreadsheetId, range, credentials } = req.body;
+  const { enabled, spreadsheetId, range, credentials, mapping } = req.body;
   config.sheets = { 
     enabled: enabled === true || enabled === 'true', 
     spreadsheetId, 
     range: range || 'Sheet1!A1', 
-    credentials: typeof credentials === 'string' ? JSON.parse(credentials) : credentials 
+    credentials: typeof credentials === 'string' ? JSON.parse(credentials) : credentials,
+    mapping: mapping || {}
   };
   saveConfig(config);
   res.json({ success: true });
