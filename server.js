@@ -131,16 +131,54 @@ async function appendToSheet(lead) {
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
+    const spreadsheetId = config.sheets.spreadsheetId;
+    const range = config.sheets.range || 'Sheet1!A1:Z1';
+
+    // 1. Get the headers from the first row
+    const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+    const headers = response.data.values ? response.data.values[0] : [];
+
+    if (headers.length === 0) {
+      // If sheet is empty, use default order
+      await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range: 'Sheet1!A1',
+        valueInputOption: 'USER_ENTERED',
+        resource: {
+          values: [[
+            lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration,
+            lead.device, lead.browser, lead.ip, lead.city, lead.country, lead.status, lead.date
+          ]],
+        },
+      });
+      return;
+    }
+
+    // 2. Map lead data to headers
+    const row = headers.map(header => {
+      const h = header.toLowerCase().trim();
+      if (h.includes('id')) return lead.id;
+      if (h.includes('name')) return lead.name;
+      if (h.includes('phone') || h.includes('mobile') || h.includes('contact')) return lead.phone;
+      if (h.includes('email')) return lead.email;
+      if (h.includes('source')) return lead.source;
+      if (h.includes('config') || h.includes('flat') || h.includes('type')) return lead.configuration;
+      if (h.includes('device')) return lead.device;
+      if (h.includes('browser')) return lead.browser;
+      if (h.includes('ip')) return lead.ip;
+      if (h.includes('city')) return lead.city;
+      if (h.includes('country')) return lead.country;
+      if (h.includes('status')) return lead.status;
+      if (h.includes('date') || h.includes('time')) return new Date(lead.date).toLocaleString('en-IN');
+      return '';
+    });
+
+    // 3. Append the mapped row
     await sheets.spreadsheets.values.append({
-      spreadsheetId: config.sheets.spreadsheetId,
+      spreadsheetId,
       range: config.sheets.range || 'Sheet1!A1',
       valueInputOption: 'USER_ENTERED',
-      resource: {
-        values: [[
-          lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration,
-          lead.device, lead.browser, lead.ip, lead.city, lead.country, lead.status, lead.date
-        ]],
-      },
+      resource: { values: [row] },
     });
   } catch (err) {
     console.error('Google Sheets error:', err.message);
@@ -195,16 +233,20 @@ app.post('/api/leads', async (req, res) => {
   };
 
   try {
-    await pool.query(
-      'INSERT INTO leads (id, name, phone, email, source, configuration, device, browser, ip, city, country, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration, lead.device, lead.browser, lead.ip, lead.city, lead.country, lead.date]
-    );
-    
-    // Async integrations
+    if (pool) {
+      await pool.query(
+        'INSERT INTO leads (id, name, phone, email, source, configuration, device, browser, ip, city, country, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration, lead.device, lead.browser, lead.ip, lead.city, lead.country, lead.date]
+      );
+    }
+  } catch (err) {
+    console.warn('⚠️ Database save failed (local test mode):', err.message);
+  }
+
+  // Always attempt integrations (Google Sheets & Email)
+  try {
     appendToSheet({...lead, status: 'New'});
 
-    // Send email notification (OMITTED FOR BREVITY, keeping logic same as before)
-    // ... same as previous server.js email logic ...
     const config = getConfig();
     if (config.smtp.host && config.smtp.user && config.smtp.to) {
        const transporter = nodemailer.createTransport({
@@ -230,11 +272,10 @@ app.post('/api/leads', async (req, res) => {
           </div>`
       });
     }
-
     res.json({ success: true, message: 'Thank you! Our team will contact you shortly.' });
   } catch (err) {
-    console.error('Failed to save lead:', err.message);
-    res.status(500).json({ error: 'Internal server error. Please try again.' });
+    console.error('Integration error:', err.message);
+    res.status(500).json({ error: 'Failed to send lead notifications.' });
   }
 });
 
