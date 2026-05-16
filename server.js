@@ -174,9 +174,7 @@ app.post('/api/leads', async (req, res) => {
     const geoRes = await axios.get(`http://ip-api.com/json/${ip}?fields=status,country,city,proxy,hosting,query`);
     if (geoRes.data.status === 'success') {
       geo = geoRes.data;
-      if (geo.proxy || geo.hosting) {
-        return res.status(403).json({ error: 'VPNs/Proxies are not allowed. Please disable it to submit.' });
-      }
+      // Removed VPN/Proxy blocking as requested
     }
   } catch (err) {
     console.error('Geo lookup failed:', err.message);
