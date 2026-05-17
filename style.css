@@ -341,6 +341,7 @@ section { padding: 140px 60px; }
 .floating-btn:hover { transform: scale(1.1); }
 .floating-btn.gold-bg { background: var(--gold-gradient); color: var(--bg-dark); }
 .floating-btn.red-bg { background: linear-gradient(135deg, var(--red-light), var(--red)); color: #fff; }
+.floating-btn.whatsapp-bg { background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; }
 
 /* STICKY BOTTOM BAR (mobile) */
 .sticky-bar {
@@ -349,7 +350,7 @@ section { padding: 140px 60px; }
   border-top: 1px solid var(--glass-border); padding: 10px 16px;
 }
 .sticky-bar-inner { display: flex; gap: 10px; }
-.sticky-bar .btn-gold, .sticky-bar .btn-red { flex: 1; justify-content: center; padding: 12px; font-size: 0.8rem; }
+.sticky-bar .btn-gold, .sticky-bar .btn-red, .sticky-bar .btn-whatsapp { flex: 1; justify-content: center; padding: 12px; font-size: 0.8rem; }
 
 /* ANIMATIONS */
 .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.7s, transform 0.7s; }
