@@ -194,6 +194,17 @@ body { font-family: var(--font-body); background: var(--bg-dark); color: var(--t
 }
 .btn-red:hover { transform: translateY(-4px); box-shadow: 0 15px 40px rgba(139,26,26,0.4); }
 
+.btn-whatsapp-form {
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 12px;
+  color: #25D366; text-decoration: none; font-weight: 600; font-size: 0.95rem; font-family: var(--font-body);
+  border: 1px solid rgba(37, 211, 102, 0.5); padding: 14px; border-radius: 10px; transition: var(--transition);
+  background: rgba(37, 211, 102, 0.05); width: 100%; cursor: pointer;
+}
+.btn-whatsapp-form:hover {
+  background: rgba(37, 211, 102, 0.15); border-color: #25D366; transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(37, 211, 102, 0.1);
+}
+
 /* INTL-TEL-INPUT OVERRIDES */
 .iti { width: 100%; margin-bottom: 12px; }
 .iti__dropdown-content { z-index: 10000; background-color: #0a0a0a; border: 1px solid var(--glass-border); color: var(--text); }
