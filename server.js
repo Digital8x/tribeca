@@ -66,7 +66,7 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(CONFIG_FILE)) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify({
     admin: { username: 'admin', password: bcrypt.hashSync('admin123', 10) },
-    smtp: { host: '', port: 587, secure: false, user: '', pass: '', from: '', to: '' },
+    smtp: { host: '', port: 587, secure: false, user: '', pass: '', from: '', to: '', cc: '' },
     sheets: { enabled: false, spreadsheetId: '', range: 'Sheet1!A1', credentials: {} }
   }, null, 2));
 }
@@ -286,7 +286,7 @@ app.post('/api/leads', async (req, res) => {
         secure: config.smtp.secure,
         auth: { user: config.smtp.user, pass: config.smtp.pass }
       });
-      await transporter.sendMail({
+      const mailOptions = {
         from: config.smtp.from || config.smtp.user,
         to: config.smtp.to,
         subject: `🏠 New Lead: ${lead.name} - Tribeca The Everett`,
@@ -301,7 +301,9 @@ app.post('/api/leads', async (req, res) => {
               <tr><td style="padding:10px;color:#a09a8c;">Date</td><td style="padding:10px;color:#f5f0e8;">${new Date(lead.date).toLocaleString('en-IN')}</td></tr>
             </table>
           </div>`
-      });
+      };
+      if (config.smtp.cc) mailOptions.cc = config.smtp.cc;
+      await transporter.sendMail(mailOptions);
     }
     res.json({ success: true, message: 'Thank you! Our team will contact you shortly.' });
   } catch (err) {
@@ -420,8 +422,8 @@ app.get('/api/admin/smtp', authMiddleware, (req, res) => {
 
 app.post('/api/admin/smtp', authMiddleware, (req, res) => {
   const config = getConfig();
-  const { host, port, secure, user, pass, from, to } = req.body;
-  config.smtp = { host, port: parseInt(port) || 587, secure: secure === true || secure === 'true', user, pass: pass === '••••••••' ? config.smtp.pass : pass, from, to };
+  const { host, port, secure, user, pass, from, to, cc } = req.body;
+  config.smtp = { host, port: parseInt(port) || 587, secure: secure === true || secure === 'true', user, pass: pass === '••••••••' ? config.smtp.pass : pass, from, to, cc };
   saveConfig(config);
   res.json({ success: true });
 });

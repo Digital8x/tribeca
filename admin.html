@@ -197,6 +197,7 @@ tr:hover td{background:rgba(201,168,76,.02)}
             <label>Password / App Password</label><input type="password" id="smtpPass" placeholder="App password">
             <label>From Email</label><input type="text" id="smtpFrom" placeholder="noreply@yourdomain.com">
             <label>Send Leads To</label><input type="text" id="smtpTo" placeholder="sales@yourdomain.com">
+            <label>CC Email(s) (Optional, comma separated)</label><input type="text" id="smtpCc" placeholder="manager@yourdomain.com">
             <div class="btn-row">
               <button type="submit" class="btn-sm btn-gold">💾 Save Settings</button>
               <button type="button" class="btn-sm btn-outline" onclick="testSMTP()">📤 Send Test Email</button>
@@ -404,6 +405,7 @@ async function loadSMTP() {
   document.getElementById('smtpPass').value = d.smtp.pass||'';
   document.getElementById('smtpFrom').value = d.smtp.from||'';
   document.getElementById('smtpTo').value = d.smtp.to||'';
+  document.getElementById('smtpCc').value = d.smtp.cc||'';
 }
 document.getElementById('smtpForm').addEventListener('submit', async e => {
   e.preventDefault();
@@ -411,7 +413,7 @@ document.getElementById('smtpForm').addEventListener('submit', async e => {
     host: document.getElementById('smtpHost').value, port: document.getElementById('smtpPort').value,
     secure: document.getElementById('smtpSecure').value, user: document.getElementById('smtpUser').value,
     pass: document.getElementById('smtpPass').value, from: document.getElementById('smtpFrom').value,
-    to: document.getElementById('smtpTo').value
+    to: document.getElementById('smtpTo').value, cc: document.getElementById('smtpCc').value
   })});
   const d = await r.json();
   showToast(d.success ? 'SMTP settings saved!' : d.error, d.success ? 'success' : 'error');
