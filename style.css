@@ -287,8 +287,8 @@ section { padding: 140px 60px; }
 
 /* LOCATION */
 .location-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; max-width: 1250px; margin: 0 auto; align-items: center; }
-.location-map { border-radius: 20px; overflow: hidden; border: 1px solid var(--glass-border); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
-.location-map img { width: 100%; display: block; transition: var(--transition); }
+.location-map { background-color: #f5f0e8; padding: 20px; border-radius: 20px; overflow: hidden; border: 1px solid var(--glass-border); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
+.location-map img { width: 100%; display: block; transition: var(--transition); border-radius: 10px; }
 .location-map:hover img { transform: scale(1.03); }
 .location-info h3 { font-family: var(--font-heading); font-size: 2rem; margin-bottom: 20px; color: var(--gold); font-weight: 700; }
 .location-info p { color: var(--text-muted); line-height: 1.8; margin-bottom: 30px; font-size: 1.05rem; font-weight: 300; }
