@@ -40,7 +40,6 @@ input, textarea, select {
 /* Prevent image drag / right-click save via pointer events */
 img {
   -webkit-user-drag: none;
-  user-drag: none;
   pointer-events: none;
 }
 /* Re-enable pointer events for clickable images inside links/buttons */
