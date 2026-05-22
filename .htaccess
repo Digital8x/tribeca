@@ -9,9 +9,9 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Proxy traffic to PM2 Node.js server running on internal port 3000
-# IMPORTANT: If your PM2 app is running on a different port, change 3000 below.
-RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]
+# Proxy traffic to PM2 Node.js server running on internal port 3008
+# IMPORTANT: If your PM2 app is running on a different port, change 3008 below.
+RewriteRule ^(.*)$ http://127.0.0.1:3008/$1 [P,L]
 
 # ── Hotlink Protection for images ─────────────────────────────
 RewriteCond %{HTTP_REFERER} !^$
