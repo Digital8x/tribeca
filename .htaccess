@@ -3,6 +3,7 @@
 # ══════════════════════════════════════════════════════════════
 
 Options -Indexes
+DirectoryIndex index.html
 RewriteEngine On
 
 # Force HTTPS
