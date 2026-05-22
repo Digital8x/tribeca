@@ -1,12 +1,10 @@
 # ══════════════════════════════════════════════════════════════
 #  Tribeca The Everett — cPanel .htaccess
-#  Node.js via Phusion Passenger + Security hardening
 # ══════════════════════════════════════════════════════════════
 
-# ── Node.js / Phusion Passenger ───────────────────────────────
-PassengerNodejs /usr/bin/node
-PassengerStartupFile server.js
-PassengerAppEnv production
+# NOTE: cPanel's "Setup Node.js App" will automatically inject 
+# its own Passenger configuration at the top of this file. Do not 
+# manually add PassengerNodejs paths.
 
 # ── Rewrite engine ────────────────────────────────────────────
 Options -Indexes
