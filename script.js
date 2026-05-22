@@ -17,13 +17,20 @@ document.getElementById('leadModal')?.addEventListener('click', function(e) {
 
 // Initialize International Telephone Input
 const itiInstances = [];
+// Allowed countries: India + key NRI markets matching server whitelist
+const ALLOWED_COUNTRIES = ['in','ae','us','gb','ca','sg','om','qa','sa','kw','bh','au'];
 document.querySelectorAll('input[type="tel"]').forEach(input => {
   const iti = window.intlTelInput(input, {
     initialCountry: "auto",
+    onlyCountries: ALLOWED_COUNTRIES,
+    preferredCountries: ["in", "ae", "us", "gb", "ca"],
     geoIpLookup: function(success, failure) {
       fetch("https://ipapi.co/json")
         .then(res => res.json())
-        .then(data => success(data.country_code))
+        .then(data => {
+          const cc = (data.country_code || 'in').toLowerCase();
+          success(ALLOWED_COUNTRIES.includes(cc) ? cc : 'in');
+        })
         .catch(() => success("in"));
     },
     utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js",
@@ -78,6 +85,9 @@ document.querySelectorAll('.lead-form').forEach(form => {
       if (result.success) {
         btn.textContent = '✓ Thank You!';
         btn.style.background = 'linear-gradient(135deg, #2d8a4e, #1a6b35)';
+        if (data.source === 'Unlock Drone Walkthrough') {
+          unlockDroneVideo();
+        }
         setTimeout(() => {
           btn.textContent = origText;
           btn.style.background = '';
@@ -208,4 +218,152 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
       navLinks?.classList.remove('open');
     }
   });
+});
+
+// Day/Night Toggle Handler
+document.addEventListener('DOMContentLoaded', () => {
+  const toggleBtns = document.querySelectorAll('.day-night-toggle .toggle-btn');
+  const dayImg = document.getElementById('aboutImgDay');
+  const nightImg = document.getElementById('aboutImgNight');
+
+  toggleBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const view = btn.getAttribute('data-view');
+      
+      toggleBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      if (view === 'day') {
+        dayImg?.classList.add('active');
+        nightImg?.classList.remove('active');
+      } else {
+        nightImg?.classList.add('active');
+        dayImg?.classList.remove('active');
+      }
+    });
+  });
+});
+
+// Drone Walkthrough Vimeo Player Logic
+let vimeoPlayer = null;
+let hasUnlocked = localStorage.getItem('tribeca_video_unlocked') === 'true';
+
+function initDroneVideo() {
+  const iframe = document.getElementById('drone-video');
+  if (!iframe) return;
+
+  // Initialize Vimeo Player
+  vimeoPlayer = new Vimeo.Player(iframe);
+  const overlay = document.getElementById('videoOverlay');
+
+  // If already unlocked, hide overlay
+  if (hasUnlocked && overlay) {
+    overlay.classList.remove('active');
+  }
+
+  let promptTriggered = false;
+
+  vimeoPlayer.on('timeupdate', function(data) {
+    // If play duration exceeds 5 seconds and not unlocked
+    if (data.seconds >= 5 && !hasUnlocked && !promptTriggered) {
+      promptTriggered = true;
+      vimeoPlayer.pause().then(() => {
+        if (overlay) {
+          overlay.classList.add('active');
+        }
+        triggerVideoLeadModal();
+      }).catch(err => {
+        console.error('Error pausing video:', err);
+      });
+    }
+  });
+
+  // Also, when the video is played, check lock status
+  vimeoPlayer.on('play', function() {
+    vimeoPlayer.getCurrentTime().then(seconds => {
+      if (seconds >= 5 && !hasUnlocked) {
+        vimeoPlayer.pause();
+        if (overlay) overlay.classList.add('active');
+        triggerVideoLeadModal();
+      }
+    });
+  });
+}
+
+function unlockDroneVideo() {
+  hasUnlocked = true;
+  localStorage.setItem('tribeca_video_unlocked', 'true');
+  const overlay = document.getElementById('videoOverlay');
+  if (overlay) {
+    overlay.classList.remove('active');
+  }
+  if (vimeoPlayer) {
+    vimeoPlayer.play().catch(err => console.log('Failed to resume video:', err));
+  }
+}
+
+function triggerVideoLeadModal() {
+  openModal('Unlock Drone Walkthrough', 'Enter your details to unlock and continue the drone walkthrough of Tribeca The Everett.');
+}
+
+// Call initDroneVideo on load
+document.addEventListener('DOMContentLoaded', initDroneVideo);
+
+// ══════════════════════════════════════════════════════════════
+//  CONTENT PROTECTION
+// ══════════════════════════════════════════════════════════════
+
+// 1. Disable Right-Click context menu
+document.addEventListener('contextmenu', function(e) {
+  e.preventDefault();
+  return false;
+});
+
+// 2. Disable F12, Ctrl+Shift+I/J, Ctrl+U, Ctrl+S, Ctrl+A
+document.addEventListener('keydown', function(e) {
+  const key = e.key;
+  const ctrl = e.ctrlKey || e.metaKey; // covers Cmd on Mac too
+  const shift = e.shiftKey;
+
+  // F12 — DevTools
+  if (key === 'F12') { e.preventDefault(); return false; }
+
+  // Ctrl+Shift+I — Inspect Element
+  if (ctrl && shift && (key === 'I' || key === 'i')) { e.preventDefault(); return false; }
+
+  // Ctrl+Shift+J — JS Console
+  if (ctrl && shift && (key === 'J' || key === 'j')) { e.preventDefault(); return false; }
+
+  // Ctrl+Shift+C — Element Picker
+  if (ctrl && shift && (key === 'C' || key === 'c')) { e.preventDefault(); return false; }
+
+  // Ctrl+U — View Source
+  if (ctrl && (key === 'U' || key === 'u')) { e.preventDefault(); return false; }
+
+  // Ctrl+S — Save Page
+  if (ctrl && (key === 'S' || key === 's')) { e.preventDefault(); return false; }
+
+  // Ctrl+A — Select All
+  if (ctrl && (key === 'A' || key === 'a')) { e.preventDefault(); return false; }
+});
+
+// 3. Block copy and cut clipboard events (outside form inputs)
+document.addEventListener('copy', function(e) {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (tag !== 'input' && tag !== 'textarea') {
+    e.preventDefault();
+    return false;
+  }
+});
+document.addEventListener('cut', function(e) {
+  const tag = document.activeElement?.tagName?.toLowerCase();
+  if (tag !== 'input' && tag !== 'textarea') {
+    e.preventDefault();
+    return false;
+  }
+});
+
+// 4. Prevent drag-start on images
+document.querySelectorAll('img').forEach(img => {
+  img.addEventListener('dragstart', e => e.preventDefault());
 });

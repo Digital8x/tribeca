@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
@@ -16,14 +17,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const CONFIG_FILE = path.join(DATA_DIR, 'config.json');
-const JWT_SECRET = 'tribeca-everett-secret-' + Date.now();
+const JWT_SECRET = process.env.JWT_SECRET || 'tribeca-everett-secret-' + Date.now();
 
 // MySQL Configuration
 const dbConfig = {
-  host: 'localhost', // Assuming localhost for cPanel
-  user: 'a1679hju_tribeca',
-  password: 'ArjunEswar',
-  database: 'a1679hju_tribeca'
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 };
 
 let pool;
@@ -65,11 +66,39 @@ initDB();
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(CONFIG_FILE)) {
   fs.writeFileSync(CONFIG_FILE, JSON.stringify({
-    admin: { username: 'admin', password: bcrypt.hashSync('admin123', 10) },
+    admin: { username: 'admin', password: '$2a$10$LPfNLxYMK9hiegU5.36R/.osMceQy1ca57Jhv1U4oC7FanKxUPdae' },
     smtp: { host: '', port: 587, secure: false, user: '', pass: '', from: '', to: '', cc: '' },
     sheets: { enabled: false, spreadsheetId: '', range: 'Sheet1!A1', credentials: {} }
   }, null, 2));
 }
+
+// ── In-Memory Rate Limiter (no extra package needed) ──────────────────────
+const rateLimitMap = new Map();
+function rateLimit(req, res, next) {
+  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000; // 10 minutes
+  const maxRequests = 5;
+
+  if (!rateLimitMap.has(ip)) rateLimitMap.set(ip, []);
+  const timestamps = rateLimitMap.get(ip).filter(t => now - t < windowMs);
+  timestamps.push(now);
+  rateLimitMap.set(ip, timestamps);
+
+  if (timestamps.length > maxRequests) {
+    return res.status(429).json({ error: 'Too many submissions. Please try again after 10 minutes.' });
+  }
+  next();
+}
+// Clean up map every 30 minutes to prevent memory leak
+setInterval(() => {
+  const cutoff = Date.now() - 10 * 60 * 1000;
+  rateLimitMap.forEach((timestamps, ip) => {
+    const fresh = timestamps.filter(t => t > cutoff);
+    if (fresh.length === 0) rateLimitMap.delete(ip);
+    else rateLimitMap.set(ip, fresh);
+  });
+}, 30 * 60 * 1000);
 
 // Middleware
 app.use(express.json());
@@ -219,7 +248,7 @@ async function appendToSheet(lead) {
 // === PUBLIC API ===
 
 // Submit lead
-app.post('/api/leads', async (req, res) => {
+app.post('/api/leads', rateLimit, async (req, res) => {
   const { name, phone, email, source, config: cfg } = req.body;
   if (!name || !phone) return res.status(400).json({ error: 'Name and phone required' });
 
@@ -228,9 +257,15 @@ app.post('/api/leads', async (req, res) => {
     return res.status(400).json({ error: 'Invalid email address' });
   }
 
+  const allowedCountries = ['IN', 'AE', 'US', 'GB', 'CA', 'SG', 'OM', 'QA', 'SA', 'KW', 'BH', 'AU'];
+
   const phoneNumber = parsePhoneNumberFromString(phone);
   if (!phoneNumber || !phoneNumber.isValid()) {
     return res.status(400).json({ error: 'Invalid phone number' });
+  }
+
+  if (phoneNumber && !allowedCountries.includes(phoneNumber.country)) {
+    return res.status(400).json({ error: 'Submissions from this country code are not permitted.' });
   }
 
   // Get IP and Location
@@ -238,12 +273,21 @@ app.post('/api/leads', async (req, res) => {
   if (ip.includes(',')) ip = ip.split(',')[0].trim();
   if (ip === '::1' || ip === '::ffff:127.0.0.1') ip = '8.8.8.8'; // Test fallback
 
-  let geo = { country: 'Unknown', city: 'Unknown', proxy: false };
+  let geo = { country: 'Unknown', city: 'Unknown', proxy: false, hosting: false, countryCode: '' };
   try {
-    const geoRes = await axios.get(`http://ip-api.com/json/${ip}?fields=status,country,city,proxy,hosting,query`);
+    const geoRes = await axios.get(`http://ip-api.com/json/${ip}?fields=status,country,countryCode,city,proxy,hosting,query`);
     if (geoRes.data.status === 'success') {
       geo = geoRes.data;
-      // Removed VPN/Proxy blocking as requested
+      
+      // Strict VPN / Proxy check
+      if (geo.proxy === true || geo.hosting === true) {
+        return res.status(400).json({ error: 'Submissions from VPN or Proxy services are blocked for security purposes.' });
+      }
+
+      // Geo-IP Location Country Check
+      if (geo.countryCode && !allowedCountries.includes(geo.countryCode.toUpperCase())) {
+        return res.status(400).json({ error: 'Submissions from your location are not permitted.' });
+      }
     }
   } catch (err) {
     console.error('Geo lookup failed:', err.message);

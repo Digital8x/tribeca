@@ -23,6 +23,29 @@
 html { scroll-behavior: smooth; }
 body { font-family: var(--font-body); background: var(--bg-dark); color: var(--text); overflow-x: hidden; line-height: 1.6; cursor: none; }
 
+/* ── Content Protection ───────────────────────────────────── */
+/* Disable text selection everywhere except form inputs */
+*, *::before, *::after {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+input, textarea, select {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+/* Prevent image drag / right-click save via pointer events */
+img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  pointer-events: none;
+}
+/* Re-enable pointer events for clickable images inside links/buttons */
+a img, button img, .day-night-toggle img { pointer-events: auto; }
+
 /* PRELOADER */
 .preloader {
   position: fixed; inset: 0; background: #000; z-index: 10000;
@@ -138,7 +161,7 @@ body { font-family: var(--font-body); background: var(--bg-dark); color: var(--t
   font-family: var(--font-heading); font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 700;
   line-height: 1.1; margin-bottom: 20px; letter-spacing: -0.5px;
   background: var(--gold-gradient);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
   animation: fadeInUp 1s 0.3s both;
 }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
@@ -413,5 +436,176 @@ section { padding: 140px 60px; }
   
   .tour-card { padding: 40px 20px; }
   .contact-form { padding: 30px 20px; }
+  .about-img-inner { height: 300px; }
+}
+
+/* INTERACTIVE DAY/NIGHT TOGGLE */
+.day-night-container {
+  position: relative;
+}
+.day-night-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  background: rgba(10, 8, 6, 0.7);
+  padding: 5px;
+  border-radius: 30px;
+  backdrop-filter: blur(15px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.toggle-btn {
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  color: var(--text-muted);
+  padding: 8px 18px;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toggle-btn.active {
+  color: var(--bg-dark);
+  background: var(--gold-gradient);
+  box-shadow: 0 4px 15px rgba(201, 168, 76, 0.3);
+}
+.toggle-btn:hover:not(.active) {
+  color: var(--gold);
+  background: rgba(255, 255, 255, 0.05);
+}
+.about-img-inner {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  overflow: hidden;
+  border-radius: 20px;
+  box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+.about-img-inner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  pointer-events: none;
+  z-index: 2;
+}
+.about-toggle-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scale(1.02);
+}
+.about-toggle-img.active {
+  opacity: 1;
+  z-index: 1;
+  transform: scale(1);
+}
+.day-night-container:hover .about-toggle-img.active {
+  transform: scale(1.05);
+}
+
+/* DRONE WALKTHROUGH VIDEO & LOCK OVERLAY */
+.tour-video-container {
+  position: relative;
+  max-width: 950px;
+  margin: 0 auto;
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 45px rgba(201, 168, 76, 0.03);
+  transition: var(--transition);
+  background: #000;
+}
+.tour-video-container:hover {
+  border-color: var(--gold);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 60px rgba(201, 168, 76, 0.1);
+}
+.video-wrapper {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 */
+  height: 0;
+  overflow: hidden;
+}
+.video-wrapper iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.video-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 5, 5, 0.9);
+  backdrop-filter: blur(20px);
+  z-index: 10;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.video-overlay.active {
+  display: flex;
+  opacity: 1;
+}
+.lock-indicator {
+  text-align: center;
+  max-width: 440px;
+  padding: 50px 40px;
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(20, 18, 15, 0.8), rgba(10, 8, 6, 0.8));
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(201,168,76,0.05);
+  transform: translateY(30px);
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.video-overlay.active .lock-indicator {
+  transform: translateY(0);
+}
+.lock-icon {
+  display: block;
+  font-size: 3.5rem;
+  margin-bottom: 20px;
+  color: var(--gold);
+  animation: lockFloat 3s ease-in-out infinite;
+}
+.lock-indicator h3 {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  color: var(--gold);
+  margin-bottom: 12px;
+  letter-spacing: 0.5px;
+}
+.lock-indicator p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 30px;
+  line-height: 1.6;
+  font-weight: 300;
+}
+.lock-indicator .btn-gold {
+  padding: 15px 35px;
+  font-size: 0.9rem;
+}
+
+@keyframes lockFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
