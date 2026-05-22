@@ -42,8 +42,10 @@ img {
   -webkit-user-drag: none;
   pointer-events: none;
 }
-/* Re-enable pointer events for clickable images inside links/buttons */
-a img, button img, .day-night-toggle img { pointer-events: auto; }
+/* Re-enable pointer events for interactive/clickable images */
+a img, button img, .about-toggle-img, .gallery-item img, .location-map img { pointer-events: auto; }
+/* Always allow iframes to receive pointer events (needed for Vimeo player) */
+iframe { pointer-events: auto; }
 
 /* PRELOADER */
 .preloader {
