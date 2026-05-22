@@ -304,15 +304,14 @@ app.post('/api/leads', rateLimit, async (req, res) => {
     ip: ip,
     city: geo.city,
     country: geo.country,
-    date: new Date().toISOString()
+    date: new Date()
   };
 
   try {
     if (pool) {
-      const mysqlDate = lead.date.slice(0, 19).replace('T', ' ');
       await pool.query(
         'INSERT INTO leads (id, name, phone, email, source, configuration, device, browser, ip, city, country, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration, lead.device, lead.browser, lead.ip, lead.city, lead.country, mysqlDate]
+        [lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration, lead.device, lead.browser, lead.ip, lead.city, lead.country, lead.date]
       );
     }
   } catch (err) {
