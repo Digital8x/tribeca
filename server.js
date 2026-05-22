@@ -304,14 +304,15 @@ app.post('/api/leads', rateLimit, async (req, res) => {
     ip: ip,
     city: geo.city,
     country: geo.country,
-    date: new Date().toISOString().slice(0, 19).replace('T', ' ')
+    date: new Date().toISOString()
   };
 
   try {
     if (pool) {
+      const mysqlDate = lead.date.slice(0, 19).replace('T', ' ');
       await pool.query(
         'INSERT INTO leads (id, name, phone, email, source, configuration, device, browser, ip, city, country, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration, lead.device, lead.browser, lead.ip, lead.city, lead.country, lead.date]
+        [lead.id, lead.name, lead.phone, lead.email, lead.source, lead.configuration, lead.device, lead.browser, lead.ip, lead.city, lead.country, mysqlDate]
       );
     }
   } catch (err) {
@@ -525,6 +526,9 @@ app.get('/api/admin/stats', authMiddleware, async (req, res) => {
 });
 
 app.get('/admin', (req, res) => { res.sendFile(path.join(__dirname, 'admin.html')); });
+
+// Catch-all to serve index.html for undefined routes (handles directory proxy edge cases)
+app.get('*', (req, res) => { res.sendFile(path.join(__dirname, 'index.html')); });
 
 app.listen(PORT, () => {
   console.log(`\n  ✨ Tribeca The Everett - Lead Generation Server`);
